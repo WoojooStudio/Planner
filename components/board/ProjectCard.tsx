@@ -12,16 +12,16 @@ type Props = {
   onToggleCollapse: () => void;
 };
 
-const IMPORTANCE_LABEL: Record<string, string> = {
-  high: "높음",
-  mid: "보통",
-  low: "낮음",
-};
-
 const IMPORTANCE_COLOR: Record<string, string> = {
   high: "#ef4444",
   mid: "#f59e0b",
-  low: "#6b7280",
+  low: "#a8a29e",
+};
+
+const IMPORTANCE_LABEL: Record<string, string> = {
+  high: "중요",
+  mid: "보통",
+  low: "낮음",
 };
 
 function DdayBadge({ deadline }: { deadline: string }) {
@@ -32,32 +32,42 @@ function DdayBadge({ deadline }: { deadline: string }) {
   const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
 
   let label: string;
-  let color: string;
+  let bg: string;
+  let fg: string;
 
   if (diff < 0) {
     label = `D+${Math.abs(diff)}`;
-    color = "#ef4444";
+    bg = "#fef2f2";
+    fg = "#ef4444";
   } else if (diff === 0) {
     label = "D-Day";
-    color = "#f59e0b";
+    bg = "#fffbeb";
+    fg = "#d97706";
+  } else if (diff <= 7) {
+    label = `D-${diff}`;
+    bg = "#fffbeb";
+    fg = "#d97706";
   } else if (diff <= 14) {
     label = `D-${diff}`;
-    color = diff <= 7 ? "#f59e0b" : "#6366f1";
+    bg = "#eef2ff";
+    fg = "#6366f1";
   } else {
     label = `D-${diff}`;
-    color = "#6b7280";
+    bg = "#f5f3ef";
+    fg = "#a8a29e";
   }
 
   return (
     <span
       style={{
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 700,
-        color,
-        background: `${color}18`,
+        color: fg,
+        background: bg,
         padding: "2px 7px",
         borderRadius: 20,
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
+        fontVariantNumeric: "tabular-nums",
       }}
     >
       {label}
@@ -65,42 +75,30 @@ function DdayBadge({ deadline }: { deadline: string }) {
   );
 }
 
-function OrbitRing({
-  todos,
-  color,
-}: {
-  todos: Todo[];
-  color: string;
-}) {
+function OrbitRing({ todos, color }: { todos: Todo[]; color: string }) {
   const total = todos.length;
   const done = todos.filter((t) => t.done).length;
   const pct = total === 0 ? 0 : done / total;
   const r = 20;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - pct);
+  const isDone = pct === 1 && total > 0;
 
   return (
-    <svg width={52} height={52} viewBox="0 0 52 52" style={{ flexShrink: 0 }}>
+    <svg width={52} height={52} viewBox="0 0 52 52" style={{ flexShrink: 0 }} aria-hidden="true">
+      <circle cx={26} cy={26} r={r} fill="none" stroke="#efefeb" strokeWidth={4} />
       <circle
         cx={26}
         cy={26}
         r={r}
         fill="none"
-        stroke="#e2ddd6"
-        strokeWidth={4}
-      />
-      <circle
-        cx={26}
-        cy={26}
-        r={r}
-        fill="none"
-        stroke={color}
+        stroke={isDone ? "#22c55e" : color}
         strokeWidth={4}
         strokeDasharray={circ}
         strokeDashoffset={offset}
         strokeLinecap="round"
         transform="rotate(-90 26 26)"
-        style={{ transition: "stroke-dashoffset 0.5s ease" }}
+        style={{ transition: "stroke-dashoffset 0.5s cubic-bezier(0.16, 1, 0.3, 1)" }}
       />
       <text
         x={26}
@@ -108,7 +106,7 @@ function OrbitRing({
         textAnchor="middle"
         fontSize={11}
         fontWeight={700}
-        fill={color}
+        fill={isDone ? "#22c55e" : color}
       >
         {Math.round(pct * 100)}%
       </text>
@@ -127,72 +125,115 @@ function TodoRow({
   onToggle: () => void;
   onDelete: () => void;
 }) {
+  const [deleting, setDeleting] = useState(false);
   const isCarried = (todo.carryCount ?? 0) >= 3;
+
+  const handleDelete = () => {
+    setDeleting(true);
+    setTimeout(onDelete, 180);
+  };
 
   return (
     <div
-      className="group"
+      className="interactive-row"
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
-        padding: "8px 10px",
+        gap: 0,
         borderRadius: 8,
-        background: todo.done ? "transparent" : isCarried ? "#fef9ec" : "transparent",
-        border: "1px solid transparent",
-        transition: "background 0.15s",
+        background: isCarried && !todo.done ? "#fffbeb" : "transparent",
+        opacity: deleting ? 0 : 1,
+        transform: deleting ? "translateX(-6px)" : "translateX(0)",
+        transition: "opacity 0.18s ease, transform 0.18s ease, background-color 0.15s ease",
       }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.background = todo.done ? "#f5f3ef" : isCarried ? "#fef3c7" : "#f5f3ef")
-      }
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.background = todo.done
-          ? "transparent"
-          : isCarried
-          ? "#fef9ec"
-          : "transparent")
-      }
     >
+      {/* Checkbox — 44×44 touch target */}
       <button
         onClick={onToggle}
         style={{
-          width: 20,
-          height: 20,
-          borderRadius: 5,
-          border: `2px solid ${todo.done ? projectColor : "#c4bdb5"}`,
-          background: todo.done ? projectColor : "transparent",
-          cursor: "pointer",
+          width: 44,
+          height: 44,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          transition: "all 0.15s",
+          background: "none",
+          border: "none",
+          padding: 0,
         }}
-        aria-label={todo.done ? "완료 취소" : "완료"}
+        aria-label={todo.done ? "완료 취소" : "완료로 표시"}
+        aria-pressed={todo.done}
       >
-        {todo.done && <Check size={12} color="#fff" strokeWidth={3} />}
+        <span
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 5,
+            border: `2px solid ${todo.done ? projectColor : "#c4bdb5"}`,
+            background: todo.done ? projectColor : "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "border-color 0.15s ease, background-color 0.15s ease",
+            flexShrink: 0,
+          }}
+        >
+          {todo.done && (
+            <Check
+              size={10}
+              color="#fff"
+              strokeWidth={3}
+              className="animate-check-pop"
+            />
+          )}
+        </span>
       </button>
 
+      {/* Text */}
       <span
         style={{
           flex: 1,
           fontSize: 13,
+          lineHeight: 1.45,
           color: todo.done ? "#a8a29e" : "#1c1917",
           textDecoration: todo.done ? "line-through" : "none",
-          lineHeight: 1.4,
+          transition: "color 0.15s ease",
+          paddingRight: 4,
+          minWidth: 0,
+          wordBreak: "break-word",
         }}
       >
         {todo.text}
       </span>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      {/* Meta indicators */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          flexShrink: 0,
+          paddingRight: 4,
+        }}
+      >
         {isCarried && (
-          <span style={{ fontSize: 11, color: "#92400e" }} title={`${todo.carryCount}회 이월`}>
-            🔁 {todo.carryCount}
+          <span
+            title={`${todo.carryCount}회 이월됨`}
+            style={{
+              fontSize: 10,
+              color: "#92400e",
+              background: "#fef3c7",
+              padding: "1px 5px",
+              borderRadius: 4,
+              fontWeight: 600,
+            }}
+          >
+            ×{todo.carryCount}
           </span>
         )}
-        {todo.importance && (
+        {todo.importance && !todo.done && (
           <span
+            title={IMPORTANCE_LABEL[todo.importance]}
             style={{
               width: 6,
               height: 6,
@@ -200,26 +241,47 @@ function TodoRow({
               background: IMPORTANCE_COLOR[todo.importance],
               flexShrink: 0,
             }}
-            title={IMPORTANCE_LABEL[todo.importance]}
           />
         )}
         {todo.estimateMin && (
-          <span style={{ fontSize: 11, color: "#a8a29e" }}>{todo.estimateMin}분</span>
+          <span
+            style={{
+              fontSize: 11,
+              color: "#a8a29e",
+              fontVariantNumeric: "tabular-nums",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {todo.estimateMin}분
+          </span>
         )}
+
+        {/* Delete — 44×44 touch target, visible only on hover via CSS class */}
         <button
-          onClick={onDelete}
+          onClick={handleDelete}
+          className="row-action"
           style={{
-            opacity: 0,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#c4bdb5",
-            padding: "2px",
+            width: 32,
+            height: 32,
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
+            background: "none",
+            border: "none",
+            color: "#c4bdb5",
+            borderRadius: 6,
+            padding: 0,
+            transition: "color 0.15s ease, background-color 0.15s ease",
           }}
-          className="group-hover:opacity-100"
-          aria-label="삭제"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#ef4444";
+            e.currentTarget.style.backgroundColor = "#fef2f2";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#c4bdb5";
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+          aria-label={`${todo.text} 삭제`}
         >
           <Trash2 size={13} />
         </button>
@@ -240,114 +302,149 @@ export default function ProjectCard({
 
   const activeTodos = project.todos.filter((t) => !t.done);
   const doneTodos = project.todos.filter((t) => t.done);
+  const allDone = project.todos.length > 0 && activeTodos.length === 0;
 
   const handleAdd = () => {
-    if (!newTodoText.trim()) {
-      setShowInput(false);
-      return;
-    }
-    onAddTodo(newTodoText.trim());
-    setNewTodoText("");
+    const text = newTodoText.trim();
     setShowInput(false);
+    setNewTodoText("");
+    if (text) onAddTodo(text);
   };
 
   return (
-    <div
-      className="animate-fade-in"
+    <article
+      className="animate-fade-in card-hover"
       style={{
         background: "#faf9f7",
         border: "1px solid #e2ddd6",
-        borderRadius: 16,
+        borderRadius: 14,
         overflow: "hidden",
       }}
+      aria-label={`${project.name} 프로젝트`}
     >
       {/* Card header */}
-      <div
+      <header
         style={{
-          padding: "14px 16px",
+          padding: "14px 14px 12px",
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: 10,
           borderBottom: project.collapsed ? "none" : "1px solid #efefeb",
+          background: allDone ? "#f0fdf4" : undefined,
+          transition: "background-color 0.3s ease",
         }}
       >
         <OrbitRing todos={project.todos} color={project.color} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 16 }}>{project.emoji}</span>
-            <span
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1 }}>
+              {project.emoji}
+            </span>
+            <h3
               style={{
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: 700,
                 color: "#1c1917",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                margin: 0,
+                lineHeight: 1.3,
               }}
             >
               {project.name}
-            </span>
+            </h3>
           </div>
+
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
-              marginTop: 4,
+              gap: 6,
+              marginTop: 5,
+              flexWrap: "wrap",
             }}
           >
             {project.deadline && <DdayBadge deadline={project.deadline} />}
             <span style={{ fontSize: 11, color: "#a8a29e" }}>
-              {activeTodos.length}개 남음
+              {allDone
+                ? "모두 완료 ✓"
+                : activeTodos.length === 0
+                ? "할일 없음"
+                : `${activeTodos.length}개 남음`}
             </span>
           </div>
         </div>
 
+        {/* Collapse toggle — 44×44 */}
         <button
           onClick={onToggleCollapse}
           style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#a8a29e",
-            padding: 4,
+            width: 36,
+            height: 36,
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
+            background: "none",
+            border: "none",
+            color: "#a8a29e",
+            borderRadius: 8,
+            padding: 0,
+            transition: "color 0.15s ease, background-color 0.15s ease",
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#6366f1";
+            e.currentTarget.style.backgroundColor = "#eef2ff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#a8a29e";
+            e.currentTarget.style.backgroundColor = "transparent";
           }}
           aria-label={project.collapsed ? "펼치기" : "접기"}
+          aria-expanded={!project.collapsed}
         >
-          {project.collapsed ? (
-            <ChevronRight size={16} />
-          ) : (
+          <span
+            style={{
+              display: "block",
+              transition: "transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+              transform: project.collapsed ? "rotate(-90deg)" : "rotate(0deg)",
+            }}
+          >
             <ChevronDown size={16} />
-          )}
+          </span>
         </button>
-      </div>
+      </header>
 
       {/* Todo list */}
       {!project.collapsed && (
-        <div style={{ padding: "8px 8px 12px" }}>
-          {activeTodos.map((t) => (
-            <TodoRow
+        <div style={{ padding: "4px 6px 10px" }}>
+          {activeTodos.map((t, i) => (
+            <div
               key={t.id}
-              todo={t}
-              projectColor={project.color}
-              onToggle={() => onToggleTodo(t.id)}
-              onDelete={() => onDeleteTodo(t.id)}
-            />
+              className={`stagger-${Math.min(i + 1, 4)}`}
+              style={{ animation: "fade-in 0.2s ease both" }}
+            >
+              <TodoRow
+                todo={t}
+                projectColor={project.color}
+                onToggle={() => onToggleTodo(t.id)}
+                onDelete={() => onDeleteTodo(t.id)}
+              />
+            </div>
           ))}
 
           {doneTodos.length > 0 && (
             <div
               style={{
-                margin: "8px 10px 4px",
+                margin: "6px 10px 2px",
                 fontSize: 11,
                 color: "#a8a29e",
-                letterSpacing: 0.5,
+                letterSpacing: 0.3,
               }}
             >
-              완료 {doneTodos.length}개
+              완료 {doneTodos.length}
             </div>
           )}
           {doneTodos.map((t) => (
@@ -360,9 +457,27 @@ export default function ProjectCard({
             />
           ))}
 
+          {/* Empty state */}
+          {project.todos.length === 0 && (
+            <p
+              style={{
+                textAlign: "center",
+                color: "#c4bdb5",
+                fontSize: 12,
+                padding: "12px 0 4px",
+                margin: 0,
+              }}
+            >
+              할일을 추가해보세요
+            </p>
+          )}
+
           {/* Add todo */}
           {showInput ? (
-            <div style={{ padding: "6px 10px", display: "flex", gap: 8 }}>
+            <div
+              className="animate-slide-up"
+              style={{ padding: "4px 8px" }}
+            >
               <input
                 autoFocus
                 value={newTodoText}
@@ -375,15 +490,18 @@ export default function ProjectCard({
                   }
                 }}
                 onBlur={handleAdd}
-                placeholder="할일 입력..."
+                placeholder="할일 입력… (Enter로 저장)"
                 style={{
-                  flex: 1,
+                  width: "100%",
                   fontSize: 13,
-                  border: "1px solid #e2ddd6",
+                  border: "1.5px solid #6366f1",
                   borderRadius: 8,
-                  padding: "7px 10px",
+                  padding: "8px 10px",
                   background: "#fff",
                   color: "#1c1917",
+                  outline: "none",
+                  boxShadow: "0 0 0 3px rgba(99,102,241,0.12)",
+                  transition: "box-shadow 0.15s ease",
                 }}
               />
             </div>
@@ -393,14 +511,25 @@ export default function ProjectCard({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
-                margin: "6px 10px 0",
+                gap: 5,
+                margin: "4px 6px 0",
+                height: 36,
+                padding: "0 8px",
                 background: "none",
                 border: "none",
-                cursor: "pointer",
                 color: "#a8a29e",
                 fontSize: 12,
-                padding: "4px 0",
+                borderRadius: 8,
+                width: "calc(100% - 12px)",
+                transition: "color 0.15s ease, background-color 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#6366f1";
+                e.currentTarget.style.backgroundColor = "#eef2ff";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#a8a29e";
+                e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
               <Plus size={14} />
@@ -409,6 +538,6 @@ export default function ProjectCard({
           )}
         </div>
       )}
-    </div>
+    </article>
   );
 }

@@ -1,28 +1,40 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useAppData } from "@/hooks/useAppData";
 import ProjectCard from "@/components/board/ProjectCard";
 import Schedule from "@/components/board/Schedule";
 import TimelineView from "@/components/timeline/TimelineView";
 import TodayView from "@/components/today/TodayView";
 import InboxCapture from "@/components/inbox/InboxCapture";
-import { Plus, LayoutGrid, GitBranch, CalendarDays } from "lucide-react";
+import { Plus, LayoutGrid, GitBranch, CalendarDays, X } from "lucide-react";
 import type { Project } from "@/lib/types";
 
 type ViewTab = "board" | "timeline" | "today";
 type TimelineRange = "2w" | "1m" | "3m";
 
-const VIEW_LABELS: Record<ViewTab, { label: string; icon: React.ReactNode }> = {
-  board: { label: "보드", icon: <LayoutGrid size={14} /> },
-  timeline: { label: "타임라인", icon: <GitBranch size={14} /> },
-  today: { label: "오늘", icon: <CalendarDays size={14} /> },
-};
+const VIEW_TABS: { id: ViewTab; label: string; icon: React.ReactNode }[] = [
+  { id: "board", label: "보드", icon: <LayoutGrid size={13} /> },
+  { id: "timeline", label: "타임라인", icon: <GitBranch size={13} /> },
+  { id: "today", label: "오늘", icon: <CalendarDays size={13} /> },
+];
 
-function getTodayString() {
+const PROJECT_COLORS = [
+  "#8b7cf8",
+  "#f472b6",
+  "#34d399",
+  "#fbbf24",
+  "#38bdf8",
+  "#f97316",
+];
+
+function getTodayLabel() {
   const d = new Date();
   const days = ["일", "월", "화", "수", "목", "금", "토"];
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}요일`;
+  const months = d.getMonth() + 1;
+  const date = d.getDate();
+  const day = days[d.getDay()];
+  return { monthDay: `${months}월 ${date}일`, dayOfWeek: `${day}요일` };
 }
 
 function AddProjectModal({
@@ -35,154 +47,304 @@ function AddProjectModal({
   const [form, setForm] = useState({
     name: "",
     emoji: "📁",
-    color: "#8b7cf8",
+    color: PROJECT_COLORS[0],
     deadline: "",
     note: "",
   });
-  const COLORS = ["#8b7cf8", "#f472b6", "#34d399", "#fbbf24", "#38bdf8", "#f97316"];
 
   const handleSave = () => {
-    if (!form.name.trim()) return;
-    const today = new Date().toISOString().split("T")[0];
+    const name = form.name.trim();
+    if (!name) return;
     onSave({
-      name: form.name.trim(),
-      emoji: form.emoji,
+      name,
+      emoji: form.emoji || "📁",
       color: form.color,
-      startDate: today,
+      startDate: new Date().toISOString().split("T")[0],
       deadline: form.deadline || undefined,
-      note: form.note || undefined,
+      note: form.note.trim() || undefined,
     });
     onClose();
   };
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-project-title"
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.35)",
+        background: "rgba(28, 25, 23, 0.4)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         zIndex: 100,
         padding: 20,
+        backdropFilter: "blur(2px)",
+        WebkitBackdropFilter: "blur(2px)",
       }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="animate-fade-in"
+        className="animate-fade-in-scale"
         style={{
           background: "#faf9f7",
-          borderRadius: 20,
+          borderRadius: 18,
           padding: 24,
           width: "100%",
-          maxWidth: 380,
+          maxWidth: 360,
           border: "1px solid #e2ddd6",
+          boxShadow:
+            "0 20px 60px rgba(28,25,23,0.15), 0 4px 16px rgba(28,25,23,0.08)",
         }}
       >
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-          새 프로젝트
+        {/* Modal header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 18,
+          }}
+        >
+          <h2
+            id="add-project-title"
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#1c1917",
+              margin: 0,
+            }}
+          >
+            새 프로젝트
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              width: 32,
+              height: 32,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#efefeb",
+              border: "none",
+              borderRadius: 8,
+              color: "#78716c",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#e2ddd6";
+              e.currentTarget.style.color = "#1c1917";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#efefeb";
+              e.currentTarget.style.color = "#78716c";
+            }}
+            aria-label="닫기"
+          >
+            <X size={14} />
+          </button>
         </div>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <input
-            value={form.emoji}
-            onChange={(e) => setForm((f) => ({ ...f, emoji: e.target.value }))}
+        {/* Name + emoji */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <div>
+            <label
+              htmlFor="project-emoji"
+              style={{ fontSize: 10, color: "#78716c", fontWeight: 600, display: "block", marginBottom: 4 }}
+            >
+              아이콘
+            </label>
+            <input
+              id="project-emoji"
+              value={form.emoji}
+              onChange={(e) => setForm((f) => ({ ...f, emoji: e.target.value }))}
+              style={{
+                width: 52,
+                height: 40,
+                fontSize: 20,
+                textAlign: "center",
+                border: "1.5px solid #e2ddd6",
+                borderRadius: 9,
+                background: "#fff",
+                outline: "none",
+                transition: "border-color 0.15s ease",
+              }}
+              onFocus={(e) => (e.target.style.borderColor = "#6366f1")}
+              onBlur={(e) => (e.target.style.borderColor = "#e2ddd6")}
+              maxLength={2}
+              aria-label="프로젝트 이모지"
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label
+              htmlFor="project-name"
+              style={{ fontSize: 10, color: "#78716c", fontWeight: 600, display: "block", marginBottom: 4 }}
+            >
+              이름 *
+            </label>
+            <input
+              id="project-name"
+              autoFocus
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              onKeyDown={(e) => e.key === "Enter" && handleSave()}
+              placeholder="프로젝트 이름"
+              style={{
+                width: "100%",
+                height: 40,
+                fontSize: 13,
+                border: "1.5px solid #e2ddd6",
+                borderRadius: 9,
+                padding: "0 12px",
+                background: "#fff",
+                color: "#1c1917",
+                outline: "none",
+                transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#6366f1";
+                e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#e2ddd6";
+                e.target.style.boxShadow = "none";
+              }}
+              required
+            />
+          </div>
+        </div>
+
+        {/* Color picker */}
+        <div style={{ marginBottom: 14 }}>
+          <div
             style={{
-              width: 52,
-              fontSize: 22,
-              textAlign: "center",
-              border: "1px solid #e2ddd6",
-              borderRadius: 8,
-              padding: "8px",
-              background: "#fff",
+              fontSize: 10,
+              color: "#78716c",
+              fontWeight: 600,
+              marginBottom: 6,
             }}
-            maxLength={2}
-          />
+          >
+            컬러
+          </div>
+          <div
+            style={{ display: "flex", gap: 7 }}
+            role="radiogroup"
+            aria-label="프로젝트 컬러"
+          >
+            {PROJECT_COLORS.map((c) => (
+              <button
+                key={c}
+                role="radio"
+                aria-checked={form.color === c}
+                aria-label={c}
+                onClick={() => setForm((f) => ({ ...f, color: c }))}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 8,
+                  background: c,
+                  border:
+                    form.color === c
+                      ? "3px solid #1c1917"
+                      : "2px solid transparent",
+                  boxShadow:
+                    form.color === c
+                      ? `0 0 0 1px ${c}`
+                      : "none",
+                  transition: "border 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease",
+                  transform: form.color === c ? "scale(1.1)" : "scale(1)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Deadline */}
+        <div style={{ marginBottom: 12 }}>
+          <label
+            htmlFor="project-deadline"
+            style={{ fontSize: 10, color: "#78716c", fontWeight: 600, display: "block", marginBottom: 4 }}
+          >
+            마감일
+          </label>
           <input
-            autoFocus
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            onKeyDown={(e) => e.key === "Enter" && handleSave()}
-            placeholder="프로젝트 이름"
+            id="project-deadline"
+            type="date"
+            value={form.deadline}
+            onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
             style={{
-              flex: 1,
-              fontSize: 14,
-              border: "1px solid #e2ddd6",
+              width: "100%",
+              height: 36,
+              fontSize: 12,
+              border: "1.5px solid #e2ddd6",
               borderRadius: 8,
-              padding: "8px 12px",
+              padding: "0 10px",
               background: "#fff",
               color: "#1c1917",
+              outline: "none",
+              transition: "border-color 0.15s ease",
             }}
+            onFocus={(e) => (e.target.style.borderColor = "#6366f1")}
+            onBlur={(e) => (e.target.style.borderColor = "#e2ddd6")}
           />
         </div>
 
-        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-          {COLORS.map((c) => (
-            <button
-              key={c}
-              onClick={() => setForm((f) => ({ ...f, color: c }))}
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: 8,
-                background: c,
-                border: form.color === c ? "3px solid #1c1917" : "2px solid transparent",
-                cursor: "pointer",
-              }}
-              aria-label={c}
-            />
-          ))}
+        {/* Note */}
+        <div style={{ marginBottom: 18 }}>
+          <label
+            htmlFor="project-note"
+            style={{ fontSize: 10, color: "#78716c", fontWeight: 600, display: "block", marginBottom: 4 }}
+          >
+            메모
+          </label>
+          <textarea
+            id="project-note"
+            value={form.note}
+            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+            placeholder="선택 사항"
+            rows={2}
+            style={{
+              width: "100%",
+              fontSize: 12,
+              border: "1.5px solid #e2ddd6",
+              borderRadius: 8,
+              padding: "8px 10px",
+              background: "#fff",
+              color: "#1c1917",
+              outline: "none",
+              resize: "none",
+              lineHeight: 1.5,
+              transition: "border-color 0.15s ease",
+            }}
+            onFocus={(e) => (e.target.style.borderColor = "#6366f1")}
+            onBlur={(e) => (e.target.style.borderColor = "#e2ddd6")}
+          />
         </div>
 
-        <input
-          type="date"
-          value={form.deadline}
-          onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
-          style={{
-            width: "100%",
-            fontSize: 13,
-            border: "1px solid #e2ddd6",
-            borderRadius: 8,
-            padding: "8px 12px",
-            background: "#fff",
-            color: "#1c1917",
-            marginBottom: 10,
-          }}
-        />
-
-        <textarea
-          value={form.note}
-          onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-          placeholder="메모 (선택)"
-          rows={2}
-          style={{
-            width: "100%",
-            fontSize: 13,
-            border: "1px solid #e2ddd6",
-            borderRadius: 8,
-            padding: "8px 12px",
-            background: "#fff",
-            color: "#1c1917",
-            marginBottom: 14,
-            resize: "none",
-          }}
-        />
-
+        {/* Actions */}
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={handleSave}
+            disabled={!form.name.trim()}
             style={{
               flex: 1,
-              padding: "10px",
+              height: 40,
               background: "#6366f1",
               color: "#fff",
               border: "none",
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 600,
-              cursor: "pointer",
+              transition: "background-color 0.15s ease",
             }}
+            onMouseEnter={(e) =>
+              !e.currentTarget.disabled &&
+              (e.currentTarget.style.background = "#4f52d9")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "#6366f1")
+            }
           >
             추가
           </button>
@@ -190,14 +352,20 @@ function AddProjectModal({
             onClick={onClose}
             style={{
               flex: 1,
-              padding: "10px",
+              height: 40,
               background: "#efefeb",
               color: "#78716c",
               border: "none",
               borderRadius: 10,
               fontSize: 13,
-              cursor: "pointer",
+              transition: "background-color 0.15s ease",
             }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = "#e2ddd6")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "#efefeb")
+            }
           >
             취소
           </button>
@@ -213,7 +381,6 @@ export default function Dashboard() {
     loaded,
     addProject,
     updateProject,
-    deleteProject,
     addTodo,
     updateTodo,
     deleteTodo,
@@ -229,7 +396,11 @@ export default function Dashboard() {
   const [timelineRange, setTimelineRange] = useState<TimelineRange>("1m");
   const [showAddProject, setShowAddProject] = useState(false);
 
-  const todayStr = getTodayString();
+  const { monthDay, dayOfWeek } = getTodayLabel();
+  const today = new Date().toISOString().split("T")[0];
+  const todayPlanned = data.projects.flatMap((p) =>
+    p.todos.filter((t) => t.plannedFor === today && !t.done)
+  ).length;
 
   if (!loaded) {
     return (
@@ -240,80 +411,145 @@ export default function Dashboard() {
           alignItems: "center",
           justifyContent: "center",
           background: "#f5f3ef",
-          color: "#a8a29e",
-          fontSize: 14,
         }}
       >
-        불러오는 중...
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            width: 240,
+          }}
+        >
+          {[100, 80, 60].map((w, i) => (
+            <div
+              key={i}
+              className={`skeleton stagger-${i + 1}`}
+              style={{ height: 14, width: `${w}%` }}
+            />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div style={{ minHeight: "100dvh", background: "#f5f3ef" }}>
-      {/* Header */}
+      {/* ── Header ── */}
       <header
         style={{
           position: "sticky",
           top: 0,
-          background: "#f5f3ef",
+          background: "rgba(245, 243, 239, 0.92)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
           borderBottom: "1px solid #e2ddd6",
           zIndex: 50,
-          padding: "12px 20px",
         }}
       >
         <div
           style={{
             maxWidth: 900,
             margin: "0 auto",
+            padding: "10px 20px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             gap: 12,
           }}
         >
+          {/* Brand + date */}
           <div>
             <div
               style={{
-                fontSize: 11,
+                fontSize: 10,
                 color: "#a8a29e",
-                letterSpacing: 1.5,
+                letterSpacing: 1.8,
                 textTransform: "uppercase",
+                fontWeight: 500,
                 marginBottom: 1,
               }}
             >
               Mission Control
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#1c1917" }}>
-              {todayStr}
+            <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+              <span
+                style={{
+                  fontSize: 17,
+                  fontWeight: 800,
+                  color: "#1c1917",
+                  letterSpacing: -0.3,
+                  fontFamily: "var(--font-serif)",
+                }}
+              >
+                {monthDay}
+              </span>
+              <span style={{ fontSize: 12, color: "#a8a29e", fontWeight: 400 }}>
+                {dayOfWeek}
+              </span>
             </div>
           </div>
 
-          {/* Tab navigation */}
-          <nav style={{ display: "flex", gap: 4 }}>
-            {(Object.keys(VIEW_LABELS) as ViewTab[]).map((tab) => {
-              const { label, icon } = VIEW_LABELS[tab];
+          {/* Tab nav */}
+          <nav
+            style={{ display: "flex", gap: 2 }}
+            aria-label="뷰 전환"
+            role="tablist"
+          >
+            {VIEW_TABS.map(({ id, label, icon }) => {
+              const isActive = view === id;
+              const hasBadge = id === "today" && todayPlanned > 0;
               return (
                 <button
-                  key={tab}
-                  onClick={() => setView(tab)}
+                  key={id}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setView(id)}
                   style={{
+                    position: "relative",
                     display: "flex",
                     alignItems: "center",
                     gap: 5,
                     padding: "6px 12px",
+                    height: 34,
                     borderRadius: 20,
                     border: "none",
-                    cursor: "pointer",
                     fontSize: 12,
                     fontWeight: 600,
-                    background: view === tab ? "#1c1917" : "transparent",
-                    color: view === tab ? "#faf9f7" : "#78716c",
-                    transition: "all 0.15s",
+                    background: isActive ? "#1c1917" : "transparent",
+                    color: isActive ? "#faf9f7" : "#78716c",
+                    transition: "background-color 0.15s ease, color 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "#efefeb";
+                      e.currentTarget.style.color = "#1c1917";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "#78716c";
+                    }
                   }}
                 >
                   {icon}
                   {label}
+                  {hasBadge && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 4,
+                        right: 6,
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#6366f1",
+                        border: `1.5px solid ${isActive ? "#1c1917" : "#f5f3ef"}`,
+                      }}
+                      aria-label={`${todayPlanned}개 대기 중`}
+                    />
+                  )}
                 </button>
               );
             })}
@@ -321,13 +557,10 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Main content */}
+      {/* ── Main ── */}
       <main
-        style={{
-          maxWidth: 900,
-          margin: "0 auto",
-          padding: "20px 20px 40px",
-        }}
+        style={{ maxWidth: 900, margin: "0 auto", padding: "20px 20px 60px" }}
+        id="main-content"
       >
         {/* Inbox — always visible */}
         <div style={{ marginBottom: 16 }}>
@@ -340,70 +573,78 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* ── Board view ─────────────────────────────────────────── */}
+        {/* ── Board ── */}
         {view === "board" && (
           <div className="animate-fade-in">
-            {/* Project grid */}
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))",
                 gap: 12,
                 marginBottom: 16,
               }}
             >
-              {data.projects.map((project) => (
-                <ProjectCard
+              {data.projects.map((project, i) => (
+                <div
                   key={project.id}
-                  project={project}
-                  onToggleTodo={(todoId) => toggleTodo(project.id, todoId)}
-                  onAddTodo={(text) =>
-                    addTodo(project.id, {
-                      text,
-                      done: false,
-                      plannedFor: new Date().toISOString().split("T")[0],
-                    })
-                  }
-                  onDeleteTodo={(todoId) => deleteTodo(project.id, todoId)}
-                  onToggleCollapse={() =>
-                    updateProject(project.id, { collapsed: !project.collapsed })
-                  }
-                />
+                  className={`stagger-${Math.min(i + 1, 4)}`}
+                  style={{ animation: "fade-in 0.25s ease both" }}
+                >
+                  <ProjectCard
+                    project={project}
+                    onToggleTodo={(todoId) => toggleTodo(project.id, todoId)}
+                    onAddTodo={(text) =>
+                      addTodo(project.id, {
+                        text,
+                        done: false,
+                        plannedFor: today,
+                      })
+                    }
+                    onDeleteTodo={(todoId) => deleteTodo(project.id, todoId)}
+                    onToggleCollapse={() =>
+                      updateProject(project.id, {
+                        collapsed: !project.collapsed,
+                      })
+                    }
+                  />
+                </div>
               ))}
 
-              {/* Add project button */}
+              {/* Add project */}
               <button
                 onClick={() => setShowAddProject(true)}
                 style={{
                   background: "transparent",
-                  border: "1.5px dashed #c4bdb5",
-                  borderRadius: 16,
+                  border: "1.5px dashed #d6d0c8",
+                  borderRadius: 14,
                   padding: "20px",
-                  cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
                   color: "#a8a29e",
-                  fontSize: 13,
-                  transition: "all 0.15s",
-                  minHeight: 80,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  transition: "border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease",
+                  minHeight: 90,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = "#6366f1";
                   e.currentTarget.style.color = "#6366f1";
+                  e.currentTarget.style.backgroundColor = "#eef2ff";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#c4bdb5";
+                  e.currentTarget.style.borderColor = "#d6d0c8";
                   e.currentTarget.style.color = "#a8a29e";
+                  e.currentTarget.style.backgroundColor = "transparent";
                 }}
+                aria-label="새 프로젝트 추가"
               >
                 <Plus size={16} />
                 새 프로젝트
               </button>
             </div>
 
-            {/* Schedule */}
             <Schedule
               events={data.events}
               projects={data.projects}
@@ -413,7 +654,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Timeline view ──────────────────────────────────────── */}
+        {/* ── Timeline ── */}
         {view === "timeline" && (
           <div className="animate-fade-in">
             <TimelineView
@@ -424,18 +665,14 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Today view ─────────────────────────────────────────── */}
+        {/* ── Today ── */}
         {view === "today" && (
           <div className="animate-fade-in">
-            <TodayView
-              projects={data.projects}
-              onToggleTodo={toggleTodo}
-            />
+            <TodayView projects={data.projects} onToggleTodo={toggleTodo} />
           </div>
         )}
       </main>
 
-      {/* Add project modal */}
       {showAddProject && (
         <AddProjectModal
           onClose={() => setShowAddProject(false)}
