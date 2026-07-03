@@ -57,7 +57,7 @@ export default function TimelineView({ projects, viewRange, onViewRangeChange }:
   return (
     <div
       style={{
-        background: "#faf9f7",
+        background: "#ffffff",
         border: "1px solid #e2ddd6",
         borderRadius: 16,
         overflow: "hidden",
@@ -67,7 +67,7 @@ export default function TimelineView({ projects, viewRange, onViewRangeChange }:
       <div
         style={{
           padding: "14px 16px",
-          borderBottom: "1px solid #efefeb",
+          borderBottom: "1px solid #f0f0f0",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -89,7 +89,7 @@ export default function TimelineView({ projects, viewRange, onViewRangeChange }:
                 cursor: "pointer",
                 fontSize: 11,
                 fontWeight: 600,
-                background: viewRange === r ? "#6366f1" : "#efefeb",
+                background: viewRange === r ? "#6366f1" : "#f0f0f0",
                 color: viewRange === r ? "#fff" : "#78716c",
                 transition: "all 0.15s",
               }}
@@ -217,7 +217,7 @@ export default function TimelineView({ projects, viewRange, onViewRangeChange }:
                     style={{
                       position: "absolute",
                       inset: "8px 0",
-                      background: "#efefeb",
+                      background: "#f0f0f0",
                       borderRadius: 4,
                     }}
                   />

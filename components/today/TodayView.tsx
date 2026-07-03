@@ -49,7 +49,7 @@ export default function TodayView({ projects, onToggleTodo }: Props) {
   return (
     <div
       style={{
-        background: "#faf9f7",
+        background: "#ffffff",
         border: "1px solid #e2ddd6",
         borderRadius: 14,
         overflow: "hidden",
@@ -59,7 +59,7 @@ export default function TodayView({ projects, onToggleTodo }: Props) {
       <div
         style={{
           padding: "14px 16px 12px",
-          borderBottom: "1px solid #efefeb",
+          borderBottom: "1px solid #f0f0f0",
           background: allDone ? "#f0fdf4" : undefined,
           transition: "background-color 0.4s ease",
         }}
@@ -100,7 +100,7 @@ export default function TodayView({ projects, onToggleTodo }: Props) {
         <div
           style={{
             height: 6,
-            background: "#efefeb",
+            background: "#f0f0f0",
             borderRadius: 6,
             overflow: "hidden",
           }}
@@ -171,7 +171,7 @@ export default function TodayView({ projects, onToggleTodo }: Props) {
         <div
           style={{
             padding: "12px 16px",
-            borderBottom: "1px solid #efefeb",
+            borderBottom: "1px solid #f0f0f0",
             background: "#eef2ff",
           }}
         >

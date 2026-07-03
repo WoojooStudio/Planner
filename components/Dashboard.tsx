@@ -88,7 +88,7 @@ function AddProjectModal({
       <div
         className="animate-fade-in-scale"
         style={{
-          background: "#faf9f7",
+          background: "#ffffff",
           borderRadius: 18,
           padding: 24,
           width: "100%",
@@ -126,7 +126,7 @@ function AddProjectModal({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "#efefeb",
+              background: "#f0f0f0",
               border: "none",
               borderRadius: 8,
               color: "#78716c",
@@ -137,7 +137,7 @@ function AddProjectModal({
               e.currentTarget.style.color = "#1c1917";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#efefeb";
+              e.currentTarget.style.background = "#f0f0f0";
               e.currentTarget.style.color = "#78716c";
             }}
             aria-label="닫기"
@@ -353,7 +353,7 @@ function AddProjectModal({
             style={{
               flex: 1,
               height: 40,
-              background: "#efefeb",
+              background: "#f0f0f0",
               color: "#78716c",
               border: "none",
               borderRadius: 10,
@@ -364,7 +364,7 @@ function AddProjectModal({
               (e.currentTarget.style.background = "#e2ddd6")
             }
             onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "#efefeb")
+              (e.currentTarget.style.background = "#f0f0f0")
             }
           >
             취소
@@ -410,7 +410,7 @@ export default function Dashboard() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#f5f3ef",
+          background: "#ffffff",
         }}
       >
         <div
@@ -434,7 +434,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ minHeight: "100dvh", background: "#f5f3ef" }}>
+    <div style={{ minHeight: "100dvh", background: "#ffffff" }}>
       {/* ── Header ── */}
       <header
         style={{
@@ -517,12 +517,12 @@ export default function Dashboard() {
                     fontSize: 12,
                     fontWeight: 600,
                     background: isActive ? "#1c1917" : "transparent",
-                    color: isActive ? "#faf9f7" : "#78716c",
+                    color: isActive ? "#ffffff" : "#78716c",
                     transition: "background-color 0.15s ease, color 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.background = "#efefeb";
+                      e.currentTarget.style.background = "#f0f0f0";
                       e.currentTarget.style.color = "#1c1917";
                     }
                   }}
@@ -545,7 +545,7 @@ export default function Dashboard() {
                         height: 6,
                         borderRadius: "50%",
                         background: "#6366f1",
-                        border: `1.5px solid ${isActive ? "#1c1917" : "#f5f3ef"}`,
+                        border: `1.5px solid ${isActive ? "#1c1917" : "#f8f8f8"}`,
                       }}
                       aria-label={`${todayPlanned}개 대기 중`}
                     />
@@ -606,6 +606,7 @@ export default function Dashboard() {
                         collapsed: !project.collapsed,
                       })
                     }
+                    onColorChange={(color) => updateProject(project.id, { color })}
                   />
                 </div>
               ))}

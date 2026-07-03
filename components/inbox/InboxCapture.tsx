@@ -35,7 +35,7 @@ export default function InboxCapture({
   return (
     <div
       style={{
-        background: "#faf9f7",
+        background: "#ffffff",
         border: `1.5px solid ${focused ? "#6366f1" : "#e2ddd6"}`,
         borderRadius: 14,
         overflow: "hidden",
@@ -47,7 +47,7 @@ export default function InboxCapture({
       <div
         style={{
           padding: "10px 14px",
-          borderBottom: inbox.length > 0 ? "1px solid #efefeb" : "none",
+          borderBottom: inbox.length > 0 ? "1px solid #f0f0f0" : "none",
           display: "flex",
           gap: 10,
           alignItems: "center",
@@ -225,7 +225,7 @@ export default function InboxCapture({
                   style={{
                     margin: "2px 10px 6px 22px",
                     padding: "8px",
-                    background: "#f5f3ef",
+                    background: "#f8f8f8",
                     borderRadius: 9,
                     border: "1px solid #e2ddd6",
                     display: "flex",
@@ -267,7 +267,7 @@ export default function InboxCapture({
                         transition: "background-color 0.12s ease",
                       }}
                       onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "#f5f3ef")
+                        (e.currentTarget.style.background = "#f8f8f8")
                       }
                       onMouseLeave={(e) =>
                         (e.currentTarget.style.background = "#fff")

@@ -70,7 +70,7 @@ export default function Schedule({ events, projects, onAdd, onDelete }: Props) {
   return (
     <div
       style={{
-        background: "#faf9f7",
+        background: "#ffffff",
         border: "1px solid #e2ddd6",
         borderRadius: 14,
         overflow: "hidden",
@@ -80,7 +80,7 @@ export default function Schedule({ events, projects, onAdd, onDelete }: Props) {
       <div
         style={{
           padding: "13px 16px 11px",
-          borderBottom: "1px solid #efefeb",
+          borderBottom: "1px solid #f0f0f0",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -114,7 +114,7 @@ export default function Schedule({ events, projects, onAdd, onDelete }: Props) {
           }}
           onMouseEnter={(e) => {
             if (!adding) {
-              e.currentTarget.style.background = "#f5f3ef";
+              e.currentTarget.style.background = "#f8f8f8";
               e.currentTarget.style.color = "#1c1917";
             }
           }}
@@ -305,7 +305,7 @@ export default function Schedule({ events, projects, onAdd, onDelete }: Props) {
           style={{
             margin: "0 10px 12px",
             padding: "12px",
-            background: "#f5f3ef",
+            background: "#f8f8f8",
             borderRadius: 10,
             border: "1px solid #e2ddd6",
             display: "flex",
@@ -387,7 +387,7 @@ export default function Schedule({ events, projects, onAdd, onDelete }: Props) {
               style={{
                 flex: 1,
                 padding: "9px",
-                background: "#efefeb",
+                background: "#f0f0f0",
                 color: "#78716c",
                 border: "none",
                 borderRadius: 8,
@@ -398,7 +398,7 @@ export default function Schedule({ events, projects, onAdd, onDelete }: Props) {
                 (e.currentTarget.style.background = "#e2ddd6")
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "#efefeb")
+                (e.currentTarget.style.background = "#f0f0f0")
               }
             >
               취소

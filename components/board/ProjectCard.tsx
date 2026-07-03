@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Project, Todo } from "@/lib/types";
-import { Check, Trash2, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Check, Trash2, Plus, ChevronDown } from "lucide-react";
+
+const COLOR_SWATCHES = [
+  "#8b7cf8", "#6366f1", "#3b82f6", "#0ea5e9",
+  "#06b6d4", "#10b981", "#34d399", "#84cc16",
+  "#f59e0b", "#f97316", "#ef4444", "#f472b6",
+  "#a855f7", "#78716c", "#1c1917",
+];
 
 type Props = {
   project: Project;
@@ -10,6 +17,7 @@ type Props = {
   onAddTodo: (text: string) => void;
   onDeleteTodo: (todoId: string) => void;
   onToggleCollapse: () => void;
+  onColorChange: (color: string) => void;
 };
 
 const IMPORTANCE_COLOR: Record<string, string> = {
@@ -53,7 +61,7 @@ function DdayBadge({ deadline }: { deadline: string }) {
     fg = "#6366f1";
   } else {
     label = `D-${diff}`;
-    bg = "#f5f3ef";
+    bg = "#f8f8f8";
     fg = "#a8a29e";
   }
 
@@ -86,7 +94,7 @@ function OrbitRing({ todos, color }: { todos: Todo[]; color: string }) {
 
   return (
     <svg width={52} height={52} viewBox="0 0 52 52" style={{ flexShrink: 0 }} aria-hidden="true">
-      <circle cx={26} cy={26} r={r} fill="none" stroke="#efefeb" strokeWidth={4} />
+      <circle cx={26} cy={26} r={r} fill="none" stroke="#f0f0f0" strokeWidth={4} />
       <circle
         cx={26}
         cy={26}
@@ -296,9 +304,23 @@ export default function ProjectCard({
   onAddTodo,
   onDeleteTodo,
   onToggleCollapse,
+  onColorChange,
 }: Props) {
   const [newTodoText, setNewTodoText] = useState("");
   const [showInput, setShowInput] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showColorPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowColorPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showColorPicker]);
 
   const activeTodos = project.todos.filter((t) => !t.done);
   const doneTodos = project.todos.filter((t) => t.done);
@@ -315,7 +337,7 @@ export default function ProjectCard({
     <article
       className="animate-fade-in card-hover"
       style={{
-        background: "#faf9f7",
+        background: "#ffffff",
         border: "1px solid #e2ddd6",
         borderRadius: 14,
         overflow: "hidden",
@@ -329,12 +351,93 @@ export default function ProjectCard({
           display: "flex",
           alignItems: "center",
           gap: 10,
-          borderBottom: project.collapsed ? "none" : "1px solid #efefeb",
+          borderBottom: project.collapsed ? "none" : "1px solid #f0f0f0",
           background: allDone ? "#f0fdf4" : undefined,
           transition: "background-color 0.3s ease",
         }}
       >
-        <OrbitRing todos={project.todos} color={project.color} />
+        {/* OrbitRing — click to open color picker */}
+        <div ref={pickerRef} style={{ position: "relative", flexShrink: 0 }}>
+          <button
+            onClick={() => setShowColorPicker((v) => !v)}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              borderRadius: "50%",
+              display: "block",
+              cursor: "pointer",
+              transition: "transform 0.15s ease",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.transform = "scale(1.08)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.transform = "scale(1)")
+            }
+            aria-label="프로젝트 색상 변경"
+            aria-expanded={showColorPicker}
+            title="색상 변경"
+          >
+            <OrbitRing todos={project.todos} color={project.color} />
+          </button>
+
+          {/* Color picker popup */}
+          {showColorPicker && (
+            <div
+              className="animate-slide-up"
+              style={{
+                position: "absolute",
+                top: "calc(100% + 8px)",
+                left: 0,
+                zIndex: 30,
+                background: "#ffffff",
+                border: "1px solid #e2ddd6",
+                borderRadius: 12,
+                padding: 10,
+                boxShadow: "0 8px 24px rgba(28,25,23,0.12)",
+                display: "grid",
+                gridTemplateColumns: "repeat(5, 1fr)",
+                gap: 5,
+                width: 162,
+              }}
+              role="dialog"
+              aria-label="색상 선택"
+            >
+              {COLOR_SWATCHES.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    onColorChange(c);
+                    setShowColorPicker(false);
+                  }}
+                  aria-label={c}
+                  aria-pressed={project.color === c}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 7,
+                    background: c,
+                    border:
+                      project.color === c
+                        ? "2.5px solid #1c1917"
+                        : "2px solid transparent",
+                    transition: "transform 0.12s ease, border 0.12s ease",
+                    transform:
+                      project.color === c ? "scale(1.15)" : "scale(1)",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.transform = "scale(1.15)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform =
+                      project.color === c ? "scale(1.15)" : "scale(1)")
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
