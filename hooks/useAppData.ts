@@ -16,13 +16,14 @@ export function useAppData() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = loadData();
-    if (stored.projects.length === 0) {
-      setData(seedData);
-    } else {
-      setData(stored);
-    }
-    setLoaded(true);
+    loadData().then((stored) => {
+      if (stored.projects.length === 0) {
+        setData(seedData);
+      } else {
+        setData(stored);
+      }
+      setLoaded(true);
+    });
   }, []);
 
   useEffect(() => {
