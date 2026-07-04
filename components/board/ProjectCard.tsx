@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { Project, Todo } from "@/lib/types";
-import { Check, Trash2, Plus, ChevronDown } from "lucide-react";
+import { Check, Trash2, Plus, ChevronDown, Settings, X } from "lucide-react";
 
 const COLOR_SWATCHES = [
   "#8b7cf8", "#6366f1", "#3b82f6", "#0ea5e9",
@@ -16,8 +16,11 @@ type Props = {
   onToggleTodo: (todoId: string) => void;
   onAddTodo: (text: string) => void;
   onDeleteTodo: (todoId: string) => void;
+  onUpdateTodo: (todoId: string, patch: Partial<Todo>) => void;
   onToggleCollapse: () => void;
   onColorChange: (color: string) => void;
+  onUpdate: (patch: Partial<Project>) => void;
+  onDelete: () => void;
 };
 
 const IMPORTANCE_COLOR: Record<string, string> = {
@@ -127,18 +130,29 @@ function TodoRow({
   projectColor,
   onToggle,
   onDelete,
+  onEdit,
 }: {
   todo: Todo;
   projectColor: string;
   onToggle: () => void;
   onDelete: () => void;
+  onEdit: (text: string) => void;
 }) {
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(todo.text);
   const isCarried = (todo.carryCount ?? 0) >= 3;
 
   const handleDelete = () => {
     setDeleting(true);
     setTimeout(onDelete, 180);
+  };
+
+  const commitEdit = () => {
+    setEditing(false);
+    const t = editText.trim();
+    if (t && t !== todo.text) onEdit(t);
+    else setEditText(todo.text);
   };
 
   return (
@@ -198,21 +212,48 @@ function TodoRow({
       </button>
 
       {/* Text */}
-      <span
-        style={{
-          flex: 1,
-          fontSize: 13,
-          lineHeight: 1.45,
-          color: todo.done ? "#a8a29e" : "#1c1917",
-          textDecoration: todo.done ? "line-through" : "none",
-          transition: "color 0.15s ease",
-          paddingRight: 4,
-          minWidth: 0,
-          wordBreak: "break-word",
-        }}
-      >
-        {todo.text}
-      </span>
+      {editing ? (
+        <input
+          autoFocus
+          value={editText}
+          onChange={(e) => setEditText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commitEdit();
+            if (e.key === "Escape") { setEditing(false); setEditText(todo.text); }
+          }}
+          onBlur={commitEdit}
+          style={{
+            flex: 1,
+            fontSize: 13,
+            border: "1.5px solid #6366f1",
+            borderRadius: 7,
+            padding: "5px 8px",
+            background: "#fff",
+            color: "#1c1917",
+            outline: "none",
+            boxShadow: "0 0 0 3px rgba(99,102,241,0.1)",
+            marginRight: 4,
+          }}
+        />
+      ) : (
+        <span
+          onClick={() => !todo.done && setEditing(true)}
+          style={{
+            flex: 1,
+            fontSize: 13,
+            lineHeight: 1.45,
+            color: todo.done ? "#a8a29e" : "#1c1917",
+            textDecoration: todo.done ? "line-through" : "none",
+            transition: "color 0.15s ease",
+            paddingRight: 4,
+            minWidth: 0,
+            wordBreak: "break-word",
+            cursor: todo.done ? "default" : "text",
+          }}
+        >
+          {todo.text}
+        </span>
+      )}
 
       {/* Meta indicators */}
       <div
@@ -303,12 +344,16 @@ export default function ProjectCard({
   onToggleTodo,
   onAddTodo,
   onDeleteTodo,
+  onUpdateTodo,
   onToggleCollapse,
   onColorChange,
+  onUpdate,
+  onDelete,
 }: Props) {
   const [newTodoText, setNewTodoText] = useState("");
   const [showInput, setShowInput] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -518,7 +563,47 @@ export default function ProjectCard({
             <ChevronDown size={16} />
           </span>
         </button>
+
+        {/* Settings button */}
+        <button
+          onClick={() => setShowEditModal(true)}
+          style={{
+            width: 36,
+            height: 36,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "none",
+            border: "none",
+            color: "#a8a29e",
+            borderRadius: 8,
+            padding: 0,
+            transition: "color 0.15s ease, background-color 0.15s ease",
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#78716c";
+            e.currentTarget.style.backgroundColor = "#f0f0f0";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#a8a29e";
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+          aria-label="프로젝트 설정"
+        >
+          <Settings size={14} />
+        </button>
       </header>
+
+      {/* Edit modal */}
+      {showEditModal && (
+        <ProjectEditModal
+          project={project}
+          onClose={() => setShowEditModal(false)}
+          onSave={(patch) => { onUpdate(patch); setShowEditModal(false); }}
+          onDelete={() => { setShowEditModal(false); onDelete(); }}
+        />
+      )}
 
       {/* Todo list */}
       {!project.collapsed && (
@@ -534,6 +619,7 @@ export default function ProjectCard({
                 projectColor={project.color}
                 onToggle={() => onToggleTodo(t.id)}
                 onDelete={() => onDeleteTodo(t.id)}
+                onEdit={(text) => onUpdateTodo(t.id, { text })}
               />
             </div>
           ))}
@@ -557,6 +643,7 @@ export default function ProjectCard({
               projectColor={project.color}
               onToggle={() => onToggleTodo(t.id)}
               onDelete={() => onDeleteTodo(t.id)}
+              onEdit={(text) => onUpdateTodo(t.id, { text })}
             />
           ))}
 
@@ -642,5 +729,180 @@ export default function ProjectCard({
         </div>
       )}
     </article>
+  );
+}
+
+// ── Project Edit Modal ─────────────────────────────────────────────
+function ProjectEditModal({
+  project,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  project: Project;
+  onClose: () => void;
+  onSave: (patch: Partial<Project>) => void;
+  onDelete: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: project.name,
+    emoji: project.emoji,
+    deadline: project.deadline ?? "",
+    note: project.note ?? "",
+  });
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleSave = () => {
+    if (!form.name.trim()) return;
+    onSave({
+      name: form.name.trim(),
+      emoji: form.emoji || "📁",
+      deadline: form.deadline || undefined,
+      note: form.note.trim() || undefined,
+    });
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-project-title"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(28,25,23,0.35)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 200,
+        padding: 20,
+        backdropFilter: "blur(2px)",
+        WebkitBackdropFilter: "blur(2px)",
+      }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="animate-fade-in-scale"
+        style={{
+          background: "#ffffff",
+          borderRadius: 16,
+          padding: 22,
+          width: "100%",
+          maxWidth: 340,
+          border: "1px solid #e2ddd6",
+          boxShadow: "0 16px 48px rgba(28,25,23,0.14)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h2 id="edit-project-title" style={{ fontSize: 14, fontWeight: 700, color: "#1c1917", margin: 0 }}>
+            프로젝트 편집
+          </h2>
+          <button
+            onClick={onClose}
+            style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f0f0", border: "none", borderRadius: 7, color: "#78716c" }}
+          >
+            <X size={13} />
+          </button>
+        </div>
+
+        {/* Emoji + name */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <input
+            value={form.emoji}
+            onChange={(e) => setForm((f) => ({ ...f, emoji: e.target.value }))}
+            style={{ width: 46, height: 38, fontSize: 18, textAlign: "center", border: "1.5px solid #e2ddd6", borderRadius: 8, background: "#fff", outline: "none" }}
+            onFocus={(e) => (e.target.style.borderColor = "#6366f1")}
+            onBlur={(e) => (e.target.style.borderColor = "#e2ddd6")}
+            maxLength={2}
+            aria-label="이모지"
+          />
+          <input
+            autoFocus
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+            placeholder="프로젝트 이름"
+            style={{ flex: 1, height: 38, fontSize: 13, border: "1.5px solid #e2ddd6", borderRadius: 8, padding: "0 10px", background: "#fff", color: "#1c1917", outline: "none" }}
+            onFocus={(e) => { e.target.style.borderColor = "#6366f1"; e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.1)"; }}
+            onBlur={(e) => { e.target.style.borderColor = "#e2ddd6"; e.target.style.boxShadow = "none"; }}
+          />
+        </div>
+
+        {/* Deadline */}
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 10, color: "#78716c", fontWeight: 600, display: "block", marginBottom: 3 }}>마감일</label>
+          <input
+            type="date"
+            value={form.deadline}
+            onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
+            style={{ width: "100%", height: 34, fontSize: 12, border: "1.5px solid #e2ddd6", borderRadius: 7, padding: "0 10px", background: "#fff", color: "#1c1917", outline: "none" }}
+            onFocus={(e) => (e.target.style.borderColor = "#6366f1")}
+            onBlur={(e) => (e.target.style.borderColor = "#e2ddd6")}
+          />
+        </div>
+
+        {/* Note */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 10, color: "#78716c", fontWeight: 600, display: "block", marginBottom: 3 }}>메모</label>
+          <textarea
+            value={form.note}
+            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+            placeholder="선택 사항"
+            rows={2}
+            style={{ width: "100%", fontSize: 12, border: "1.5px solid #e2ddd6", borderRadius: 7, padding: "7px 10px", background: "#fff", color: "#1c1917", outline: "none", resize: "none", lineHeight: 1.5 }}
+            onFocus={(e) => (e.target.style.borderColor = "#6366f1")}
+            onBlur={(e) => (e.target.style.borderColor = "#e2ddd6")}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: 7 }}>
+          <button
+            onClick={handleSave}
+            disabled={!form.name.trim()}
+            style={{ flex: 1, height: 36, background: "#6366f1", color: "#fff", border: "none", borderRadius: 9, fontSize: 12, fontWeight: 600 }}
+            onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.background = "#4f52d9")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#6366f1")}
+          >
+            저장
+          </button>
+          <button
+            onClick={onClose}
+            style={{ flex: 1, height: 36, background: "#f0f0f0", color: "#78716c", border: "none", borderRadius: 9, fontSize: 12 }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#e2ddd6")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#f0f0f0")}
+          >
+            취소
+          </button>
+        </div>
+
+        {/* Delete */}
+        <div style={{ marginTop: 12, borderTop: "1px solid #f0f0f0", paddingTop: 12 }}>
+          {confirmDelete ? (
+            <div style={{ display: "flex", gap: 7 }}>
+              <span style={{ fontSize: 12, color: "#78716c", flex: 1, display: "flex", alignItems: "center" }}>정말 삭제할까요?</span>
+              <button
+                onClick={onDelete}
+                style={{ height: 32, padding: "0 12px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+              >
+                삭제
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                style={{ height: 32, padding: "0 12px", background: "#f0f0f0", color: "#78716c", border: "none", borderRadius: 8, fontSize: 12 }}
+              >
+                취소
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              style={{ background: "none", border: "none", fontSize: 12, color: "#ef4444", padding: 0 }}
+            >
+              프로젝트 삭제…
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

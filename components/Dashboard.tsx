@@ -7,6 +7,7 @@ import Schedule from "@/components/board/Schedule";
 import TimelineView from "@/components/timeline/TimelineView";
 import TodayView from "@/components/today/TodayView";
 import InboxCapture from "@/components/inbox/InboxCapture";
+import BrainDump from "@/components/ai/BrainDump";
 import { Plus, LayoutGrid, GitBranch, CalendarDays, X } from "lucide-react";
 import type { Project } from "@/lib/types";
 
@@ -381,6 +382,7 @@ export default function Dashboard() {
     loaded,
     addProject,
     updateProject,
+    deleteProject,
     addTodo,
     updateTodo,
     deleteTodo,
@@ -563,13 +565,30 @@ export default function Dashboard() {
         id="main-content"
       >
         {/* Inbox — always visible */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 12 }}>
           <InboxCapture
             inbox={data.inbox}
             projects={data.projects}
             onAdd={addInbox}
             onDelete={deleteInbox}
             onAssign={assignInboxToProject}
+          />
+        </div>
+
+        {/* Brain Dump — always visible */}
+        <div style={{ marginBottom: 16 }}>
+          <BrainDump
+            projects={data.projects}
+            onAddTodos={(items) => {
+              const todayStr = new Date().toISOString().split("T")[0];
+              items.forEach(({ projectId, todo }) => {
+                if (projectId) {
+                  addTodo(projectId, todo);
+                } else {
+                  addInbox(todo.text);
+                }
+              });
+            }}
           />
         </div>
 
@@ -601,12 +620,15 @@ export default function Dashboard() {
                       })
                     }
                     onDeleteTodo={(todoId) => deleteTodo(project.id, todoId)}
+                    onUpdateTodo={(todoId, patch) => updateTodo(project.id, todoId, patch)}
                     onToggleCollapse={() =>
                       updateProject(project.id, {
                         collapsed: !project.collapsed,
                       })
                     }
                     onColorChange={(color) => updateProject(project.id, { color })}
+                    onUpdate={(patch) => updateProject(project.id, patch)}
+                    onDelete={() => deleteProject(project.id)}
                   />
                 </div>
               ))}
